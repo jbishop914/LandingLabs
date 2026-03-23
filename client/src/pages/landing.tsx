@@ -4,7 +4,8 @@ import { ParticleCanvas } from "@/components/ParticleCanvas";
 import { DEMO_PRESETS } from "@/lib/particles/presets";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Sparkles, ArrowRight, Layers, Zap, Code } from "lucide-react";
+import { ChevronDown, ArrowRight, Layers, Zap, Code } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export default function LandingPage() {
   const [selectedPreset, setSelectedPreset] = useState(DEMO_PRESETS[0].id);
@@ -28,7 +29,7 @@ export default function LandingPage() {
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <Logo size={28} />
             <span className="text-white font-semibold text-lg tracking-tight">LandingLabs</span>
           </div>
         </div>

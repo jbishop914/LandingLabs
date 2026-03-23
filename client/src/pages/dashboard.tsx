@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sparkles,
   Plus,
   Layers,
   Type,
@@ -17,6 +16,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import type { Project, User } from "@shared/schema";
 
 export default function DashboardPage() {
@@ -46,7 +46,7 @@ export default function DashboardPage() {
       <header className="border-b border-white/8 bg-gray-950/80 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <Logo size={28} />
             <span className="text-white font-semibold text-lg tracking-tight">LandingLabs</span>
           </div>
           <div className="flex items-center gap-4">

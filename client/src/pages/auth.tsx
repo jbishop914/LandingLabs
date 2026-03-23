@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -59,7 +60,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           <CardHeader className="text-center space-y-2">
             <div className="flex justify-center mb-2">
               <div className="flex items-center gap-2" onClick={() => navigate("/")} role="button" tabIndex={0} data-testid="logo-link">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
+                <Logo size={28} />
                 <span className="text-white font-semibold text-lg">LandingLabs</span>
               </div>
             </div>
