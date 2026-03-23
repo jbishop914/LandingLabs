@@ -22,21 +22,10 @@ import type { Project, User } from "@shared/schema";
 export default function DashboardPage() {
   const [, navigate] = useLocation();
 
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/auth/me");
-      return res.json();
-    },
-  });
-
-  const { data: projects, isLoading: loadingProjects } = useQuery<Project[]>({
-    queryKey: ["/api/projects"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/projects");
-      return res.json();
-    },
-  });
+  // Demo mode — no backend needed
+  const user = { id: 1, username: "demo", subscriptionStatus: "trial", email: null, trialStartedAt: null } as User;
+  const projects: Project[] = [];
+  const loadingProjects = false;
 
   const isTrial = user?.subscriptionStatus === "trial";
 
@@ -70,10 +59,7 @@ export default function DashboardPage() {
               variant="ghost"
               size="sm"
               className="text-white/40 hover:text-white"
-              onClick={async () => {
-                await apiRequest("POST", "/api/auth/logout");
-                navigate("/");
-              }}
+              onClick={() => navigate("/")}
               data-testid="logout-button"
             >
               <LogOut className="w-4 h-4" />

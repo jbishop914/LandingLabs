@@ -62,14 +62,14 @@ export default function LandingPage() {
           <Button
             variant="ghost"
             className="text-white/80 hover:text-white hover:bg-white/10"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/dashboard")}
             data-testid="login-button"
           >
             Log in
           </Button>
           <Button
             className="bg-cyan-500 hover:bg-cyan-400 text-black font-medium"
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/dashboard")}
             data-testid="signup-button"
           >
             Start free trial
@@ -93,7 +93,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold gap-2 px-8"
-              onClick={() => navigate("/signup")}
+              onClick={() => navigate("/builder")}
               data-testid="cta-start-building"
             >
               Start building

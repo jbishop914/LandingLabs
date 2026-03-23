@@ -243,22 +243,8 @@ import * as THREE from 'three';
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSave = async () => {
-    try {
-      await apiRequest("POST", "/api/projects", {
-        name: projectName,
-        sourceUrl: sourceUrl || null,
-        particleConfig: JSON.stringify(config),
-        sequenceConfig: sequence.length > 0 ? JSON.stringify(sequence) : null,
-        status: "completed",
-        userId: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      toast({ title: "Saved", description: "Project saved successfully" });
-    } catch {
-      toast({ title: "Saved locally", description: "Project configuration saved" });
-    }
+  const handleSave = () => {
+    toast({ title: "Saved", description: "Project configuration saved (demo mode)" });
   };
 
   return (
