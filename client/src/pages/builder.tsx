@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ParticleCanvas } from "@/components/ParticleCanvas";
 import { DEFAULT_CONFIG, type ParticleConfig } from "@/lib/particles/engine";
@@ -58,6 +58,12 @@ export default function BuilderPage() {
   const [sequence, setSequence] = useState<SequenceStop[]>([]);
   const [activeSequenceIndex, setActiveSequenceIndex] = useState(-1);
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
+
+  // Sequence playback state
+  const [sequencePlaybackIndex, setSequencePlaybackIndex] = useState(-1);
+  const [sequenceElapsed, setSequenceElapsed] = useState(0);
+  const [sequenceTransitionOpacity, setSequenceTransitionOpacity] = useState(1);
+  const playbackTimerRef = useRef<number | null>(null);
 
   // Export state
   const [showExport, setShowExport] = useState(false);
@@ -246,6 +252,144 @@ import * as THREE from 'three';
   const handleSave = () => {
     toast({ title: "Saved", description: "Project configuration saved (demo mode)" });
   };
+
+  // === Sequence Playback Engine ===
+  const getTotalSequenceDuration = useCallback(() => {
+    const mainDuration = 5; // main animation plays for 5s
+    return mainDuration + sequence.reduce((sum, s) => sum + s.duration + s.transitionDuration, 0);
+  }, [sequence]);
+
+  const toggleSequencePlayback = useCallback(() => {
+    if (isPlayingSequence) {
+      // Stop
+      setIsPlayingSequence(false);
+      if (playbackTimerRef.current) {
+        cancelAnimationFrame(playbackTimerRef.current);
+        playbackTimerRef.current = null;
+      }
+      setSequenceTransitionOpacity(1);
+      setSequencePlaybackIndex(-1);
+      setSequenceElapsed(0);
+      // Restore to editing state
+      setActiveSequenceIndex(-1);
+    } else {
+      // Start playback
+      setIsPlayingSequence(true);
+      setSequencePlaybackIndex(-1);
+      setSequenceElapsed(0);
+      setSequenceTransitionOpacity(1);
+      setActiveSequenceIndex(-1); // start with main animation
+    }
+  }, [isPlayingSequence]);
+
+  // Playback tick loop
+  useEffect(() => {
+    if (!isPlayingSequence || sequence.length === 0) return;
+
+    const mainDuration = 5;
+    let startTime = performance.now();
+    let currentIdx = -1; // -1 = main animation
+    let inTransition = false;
+
+    const tick = () => {
+      const now = performance.now();
+      const elapsed = (now - startTime) / 1000;
+      setSequenceElapsed(elapsed);
+
+      // Build timeline: [main(5s), trans, stop0, trans, stop1, ...]
+      let cursor = 0;
+      let targetIdx = -1;
+      let isInTransition = false;
+      let transitionProgress = 0;
+
+      // Main animation segment
+      cursor += mainDuration;
+      if (elapsed < cursor) {
+        targetIdx = -1;
+      } else {
+        // Walk through sequence stops
+        for (let i = 0; i < sequence.length; i++) {
+          const stop = sequence[i];
+          // Transition into this stop
+          const transDur = stop.transitionDuration;
+          cursor += transDur;
+          if (elapsed < cursor) {
+            targetIdx = i;
+            isInTransition = true;
+            transitionProgress = transDur > 0 ? (elapsed - (cursor - transDur)) / transDur : 1;
+            break;
+          }
+          // The stop itself
+          cursor += stop.duration;
+          if (elapsed < cursor) {
+            targetIdx = i;
+            break;
+          }
+        }
+
+        // Past the end — loop back
+        if (elapsed >= cursor && targetIdx === -1 && !isInTransition) {
+          // Loop: restart from beginning
+          startTime = performance.now();
+          setSequencePlaybackIndex(-1);
+          setActiveSequenceIndex(-1);
+          setSequenceTransitionOpacity(1);
+          setSequenceElapsed(0);
+          playbackTimerRef.current = requestAnimationFrame(tick);
+          return;
+        }
+      }
+
+      // Apply state changes
+      if (targetIdx !== currentIdx) {
+        currentIdx = targetIdx;
+        setSequencePlaybackIndex(targetIdx);
+        if (targetIdx === -1) {
+          setActiveSequenceIndex(-1);
+        } else {
+          setActiveSequenceIndex(targetIdx);
+        }
+      }
+
+      // Handle transition opacity
+      if (isInTransition && targetIdx >= 0) {
+        const stop = sequence[targetIdx];
+        if (stop.transition === "fade") {
+          // Fade out first half, fade in second half
+          if (transitionProgress < 0.5) {
+            setSequenceTransitionOpacity(1 - transitionProgress * 2);
+          } else {
+            setSequenceTransitionOpacity((transitionProgress - 0.5) * 2);
+          }
+        } else if (stop.transition === "flash") {
+          // Flash white then reveal
+          if (transitionProgress < 0.3) {
+            setSequenceTransitionOpacity(1 - transitionProgress / 0.3);
+          } else if (transitionProgress < 0.5) {
+            setSequenceTransitionOpacity(0);
+          } else {
+            setSequenceTransitionOpacity((transitionProgress - 0.5) * 2);
+          }
+        } else {
+          // Instant
+          setSequenceTransitionOpacity(transitionProgress > 0.5 ? 1 : 0);
+        }
+      } else {
+        setSequenceTransitionOpacity(1);
+      }
+
+      playbackTimerRef.current = requestAnimationFrame(tick);
+    };
+
+    playbackTimerRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (playbackTimerRef.current) {
+        cancelAnimationFrame(playbackTimerRef.current);
+      }
+    };
+  }, [isPlayingSequence, sequence]);
+  // === End Sequence Playback Engine ===
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden" data-testid="builder-page">
@@ -798,10 +942,62 @@ import * as THREE from 'three';
       {/* Main canvas area */}
       <div className="flex-1 relative">
         <ParticleCanvas
-          key={`${JSON.stringify(activeConfig)}-${activeBg}`}
           config={activeConfig}
           backgroundColor={activeBg}
+          showStats
+          globalOpacity={sequenceTransitionOpacity}
         />
+
+        {/* Sequence playback timeline */}
+        {sequence.length > 0 && (
+          <div className="absolute top-4 left-4 right-4 z-10">
+            <div className="bg-black/60 backdrop-blur-md rounded-xl px-4 py-3 border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-white hover:text-cyan-400"
+                  onClick={toggleSequencePlayback}
+                  data-testid="sequence-play-pause"
+                >
+                  {isPlayingSequence ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                <div className="flex-1">
+                  <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-white/10">
+                    {/* Main animation segment */}
+                    <div
+                      className={`h-full rounded-full transition-colors ${
+                        sequencePlaybackIndex === -1 ? "bg-cyan-500" : "bg-white/20"
+                      }`}
+                      style={{ flex: 1 }}
+                    />
+                    {/* Sequence stop segments */}
+                    {sequence.map((stop, idx) => (
+                      <div
+                        key={stop.id}
+                        className={`h-full rounded-full transition-colors ${
+                          sequencePlaybackIndex === idx ? "bg-cyan-500" : "bg-white/20"
+                        }`}
+                        style={{ flex: stop.duration / 5 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <span className="text-white/40 text-xs font-mono min-w-[60px] text-right">
+                  {isPlayingSequence
+                    ? `${Math.floor(sequenceElapsed)}s / ${getTotalSequenceDuration()}s`
+                    : `${sequence.length + 1} stops`}
+                </span>
+              </div>
+              {isPlayingSequence && (
+                <div className="text-white/30 text-xs">
+                  Playing: {sequencePlaybackIndex === -1 ? "Main animation" : `Stop ${sequencePlaybackIndex + 1}`}
+                  {sequenceTransitionOpacity < 1 && " (transitioning...)"}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Floating controls */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">

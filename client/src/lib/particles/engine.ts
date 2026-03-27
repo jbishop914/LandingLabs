@@ -386,22 +386,36 @@ export class ParticleEngine {
 
   updateConfig(newConfig: Partial<ParticleConfig>) {
     const needsRecreate =
-      newConfig.count !== undefined && newConfig.count !== this.config.count ||
-      newConfig.pattern !== undefined && newConfig.pattern !== this.config.pattern ||
-      newConfig.blending !== undefined && newConfig.blending !== this.config.blending;
+      (newConfig.count !== undefined && newConfig.count !== this.config.count) ||
+      (newConfig.pattern !== undefined && newConfig.pattern !== this.config.pattern) ||
+      (newConfig.blending !== undefined && newConfig.blending !== this.config.blending) ||
+      (newConfig.gridSpacing !== undefined && newConfig.gridSpacing !== this.config.gridSpacing);
 
     this.config = { ...this.config, ...newConfig };
 
     if (needsRecreate) {
+      // Reset orbit rotation when pattern changes
+      if (newConfig.pattern !== undefined) {
+        this.orbitGroup.rotation.set(0, 0, 0);
+      }
       this.createParticles();
     } else if (this.particles) {
       const mat = this.particles.material as THREE.PointsMaterial;
       if (newConfig.size !== undefined) mat.size = newConfig.size;
       if (newConfig.opacity !== undefined) mat.opacity = newConfig.opacity;
-      if (newConfig.color || newConfig.gradientEnd) {
+      if (newConfig.color !== undefined || newConfig.gradientEnd !== undefined) {
         this.updateColors();
       }
     }
+  }
+
+  /** Get current FPS-relevant stats */
+  getStats() {
+    return {
+      particleCount: this.config.count,
+      pattern: this.config.pattern,
+      isAnimating: this.animationId !== 0,
+    };
   }
 
   updateColors() {
